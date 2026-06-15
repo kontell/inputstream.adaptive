@@ -1,0 +1,87 @@
+name: Test Build
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+env:
+  app_id: inputstream.adaptive
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # Linux x86_64
+          - { name: "Linux x86_64 / Kodi 21", os: linux, arch: x86_64, kodi: 21, kodi_branch: Omega }
+          - { name: "Linux x86_64 / Kodi 22", os: linux, arch: x86_64, kodi: 22, kodi_branch: master }
+          # Linux armv7
+          - { name: "Linux armv7 / Kodi 21", os: linux, arch: armv7, kodi: 21, kodi_branch: Omega, cross_pkgs: "gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf" }
+          - { name: "Linux armv7 / Kodi 22", os: linux, arch: armv7, kodi: 22, kodi_branch: master, cross_pkgs: "gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf" }
+          # Linux aarch64
+          - { name: "Linux aarch64 / Kodi 21", os: linux, arch: aarch64, kodi: 21, kodi_branch: Omega, cross_pkgs: "gcc-aarch64-linux-gnu g++-aarch64-linux-gnu" }
+          - { name: "Linux aarch64 / Kodi 22", os: linux, arch: aarch64, kodi: 22, kodi_branch: master, cross_pkgs: "gcc-aarch64-linux-gnu g++-aarch64-linux-gnu" }
+          # Android armv7
+          - { name: "Android armv7 / Kodi 21", os: android, arch: armv7, kodi: 21, kodi_branch: Omega }
+          - { name: "Android armv7 / Kodi 22", os: android, arch: armv7, kodi: 22, kodi_branch: master }
+          # Android aarch64
+          - { name: "Android aarch64 / Kodi 21", os: android, arch: aarch64, kodi: 21, kodi_branch: Omega }
+          - { name: "Android aarch64 / Kodi 22", os: android, arch: aarch64, kodi: 22, kodi_branch: master }
+    name: ${{ matrix.name }}
+    steps:
+    - name: Checkout addon
+      uses: actions/checkout@v5
+      with:
+        path: ${{ env.app_id }}
+
+    - name: Checkout Kodi
+      uses: actions/checkout@v5
+      with:
+        repository: xbmc/xbmc
+        ref: ${{ matrix.kodi_branch }}
+        path: xbmc
+        sparse-checkout: |
+          version.txt
+          xbmc/interfaces/json-rpc/schema/version.txt
+          cmake/
+          xbmc/addons/AddonBindings.cmake
+          xbmc/addons/kodi-dev-kit/include/kodi/
+        sparse-checkout-cone-mode: false
+        fetch-depth: 1
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update -qq
+        sudo apt-get install -y autopoint autoconf automake libtool zip ${{ matrix.cross_pkgs }}
+
+    - name: Setup Android NDK
+      if: matrix.os == 'android'
+      id: setup-ndk
+      run: |
+        NDK_VERSION=r25c
+        NDK_DIR="$HOME/android-ndk-${NDK_VERSION}"
+        if [ ! -d "$NDK_DIR" ]; then
+          wget -q "https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip" -O /tmp/ndk.zip
+          unzip -q /tmp/ndk.zip -d "$HOME"
+          rm /tmp/ndk.zip
+        fi
+        echo "ndk-path=$NDK_DIR" >> $GITHUB_OUTPUT
+
+    - name: Build
+      run: |
+        ${{ github.workspace }}/${app_id}/scripts/build.sh \
+          --os ${{ matrix.os }} \
+          --arch ${{ matrix.arch }} \
+          --kodi ${{ matrix.kodi }} \
+          --kodi-src ${{ github.workspace }}/xbmc \
+          ${{ matrix.os == 'android' && format('--ndk {0}', steps.setup-ndk.outputs.ndk-path) || '' }} \
+          --output ${{ github.workspace }}/artifacts \
+          --jobs $(getconf _NPROCESSORS_ONLN)
+
+    - name: Upload artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ env.app_id }}-${{ matrix.os }}-${{ matrix.arch }}-kodi${{ matrix.kodi }}
+        path: ${{ github.workspace }}/artifacts/*.zip
