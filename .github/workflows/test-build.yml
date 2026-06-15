@@ -14,20 +14,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          # Linux x86_64
-          - { name: "Linux x86_64 / Kodi 21", os: linux, arch: x86_64, kodi: 21, kodi_branch: Omega }
+          # The 22.3.x branch targets Kodi 22 (Piers) only; Kodi 21 (Omega) lacks
+          # the newer kodi-dev-kit API used here, so build against Kodi 22 only.
           - { name: "Linux x86_64 / Kodi 22", os: linux, arch: x86_64, kodi: 22, kodi_branch: master }
-          # Linux armv7
-          - { name: "Linux armv7 / Kodi 21", os: linux, arch: armv7, kodi: 21, kodi_branch: Omega, cross_pkgs: "gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf" }
           - { name: "Linux armv7 / Kodi 22", os: linux, arch: armv7, kodi: 22, kodi_branch: master, cross_pkgs: "gcc-arm-linux-gnueabihf g++-arm-linux-gnueabihf" }
-          # Linux aarch64
-          - { name: "Linux aarch64 / Kodi 21", os: linux, arch: aarch64, kodi: 21, kodi_branch: Omega, cross_pkgs: "gcc-aarch64-linux-gnu g++-aarch64-linux-gnu" }
           - { name: "Linux aarch64 / Kodi 22", os: linux, arch: aarch64, kodi: 22, kodi_branch: master, cross_pkgs: "gcc-aarch64-linux-gnu g++-aarch64-linux-gnu" }
-          # Android armv7
-          - { name: "Android armv7 / Kodi 21", os: android, arch: armv7, kodi: 21, kodi_branch: Omega }
           - { name: "Android armv7 / Kodi 22", os: android, arch: armv7, kodi: 22, kodi_branch: master }
-          # Android aarch64
-          - { name: "Android aarch64 / Kodi 21", os: android, arch: aarch64, kodi: 21, kodi_branch: Omega }
           - { name: "Android aarch64 / Kodi 22", os: android, arch: aarch64, kodi: 22, kodi_branch: master }
     name: ${{ matrix.name }}
     steps:
@@ -60,7 +52,7 @@ jobs:
       if: matrix.os == 'android'
       id: setup-ndk
       run: |
-        NDK_VERSION=r25c
+        NDK_VERSION=r27c
         NDK_DIR="$HOME/android-ndk-${NDK_VERSION}"
         if [ ! -d "$NDK_DIR" ]; then
           wget -q "https://dl.google.com/android/repository/android-ndk-${NDK_VERSION}-linux.zip" -O /tmp/ndk.zip
