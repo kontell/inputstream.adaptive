@@ -171,6 +171,11 @@ set(AUTOTOOLS_HOST arm-linux-androideabi CACHE STRING "")
 include($NDK_PATH/build/cmake/android.toolchain.cmake)
 if(DEFINED ADDON_DEPENDS_PATH)
   list(APPEND CMAKE_FIND_ROOT_PATH \${ADDON_DEPENDS_PATH})
+  # cmake/addons can pass a mangled (separator-stripped) CMAKE_PREFIX_PATH to
+  # sub-builds; re-add a clean depends prefix and allow include search to use it
+  # so find_path(... include/androidjni) (FindLibAndroidJNI) resolves.
+  list(APPEND CMAKE_PREFIX_PATH \${ADDON_DEPENDS_PATH})
+  set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
   set(Kodi_DIR \${ADDON_DEPENDS_PATH}/lib/kodi CACHE PATH "" FORCE)
 endif()
 TCEOF
@@ -195,6 +200,11 @@ set(AUTOTOOLS_HOST aarch64-linux-android CACHE STRING "")
 include($NDK_PATH/build/cmake/android.toolchain.cmake)
 if(DEFINED ADDON_DEPENDS_PATH)
   list(APPEND CMAKE_FIND_ROOT_PATH \${ADDON_DEPENDS_PATH})
+  # cmake/addons can pass a mangled (separator-stripped) CMAKE_PREFIX_PATH to
+  # sub-builds; re-add a clean depends prefix and allow include search to use it
+  # so find_path(... include/androidjni) (FindLibAndroidJNI) resolves.
+  list(APPEND CMAKE_PREFIX_PATH \${ADDON_DEPENDS_PATH})
+  set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE BOTH)
   set(Kodi_DIR \${ADDON_DEPENDS_PATH}/lib/kodi CACHE PATH "" FORCE)
 endif()
 TCEOF
